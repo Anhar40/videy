@@ -1,10 +1,7 @@
 {
     "functions": {
         "api/index.js": {
-            "includeFiles": [
-                "{index,preview}.html",
-                "videos.json"
-            ]
+            "includeFiles": "*.{html,json}"
         }
     },
     "rewrites": [
