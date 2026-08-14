@@ -1,0 +1,13 @@
+# Kredensial
+.env
+.env.local
+
+# Dependencies
+node_modules/
+
+# Folder lokal
+uploads/
+videos/
+
+# Vercel
+.vercel/

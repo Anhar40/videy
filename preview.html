@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Videy - Preview Rekaman</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: [
+                            "Inter",
+                            "ui-sans-serif",
+                            "system-ui",
+                            "sans-serif"
+                        ]
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /*
+         * Class di bawah dibuat oleh JavaScript
+         * (element.className di-overwrite),
+         * jadi tidak bisa pakai utility Tailwind
+         * langsung pada elemen tersebut.
+         */
+
+        .recording-item {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 14px;
+
+            padding: 14px 16px;
+
+            background: #0f172a;
+
+            border:
+                1px solid #1e293b;
+
+            border-radius: 12px;
+
+            cursor: pointer;
+
+            transition:
+                border-color .15s,
+                background-color .15s;
+
+        }
+
+
+        .recording-item:hover {
+
+            border-color: #ef4444;
+
+            background: #111c33;
+
+        }
+
+
+        .recording-item.active {
+
+            border-color: #ef4444;
+
+            background: #1a1a2e;
+
+            box-shadow:
+                0 0 0 1px rgba(239,68,68,.25);
+
+        }
+
+
+        .recording-name {
+
+            flex: 1;
+
+            word-break: break-all;
+
+            font-size: 14px;
+
+            font-weight: 500;
+
+            color: #e2e8f0;
+
+        }
+
+
+        .recording-info {
+
+            color: #94a3b8;
+
+            font-size: 12px;
+
+            white-space: nowrap;
+
+        }
+
+
+        .delete-btn {
+
+            border: 0;
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            color: white;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            background: #dc2626;
+
+            transition:
+                background-color .15s,
+                transform .1s;
+
+        }
+
+
+        .delete-btn:hover {
+
+            background: #b91c1c;
+
+        }
+
+
+        .delete-btn:active {
+
+            transform: scale(.95);
+
+        }
+
+
+        .status {
+
+            padding: 14px 16px;
+
+            border-radius: 12px;
+
+            background: rgba(127,29,29,.25);
+
+            border:
+                1px solid #7f1d1d;
+
+            color: #e2e8f0;
+
+        }
+
+
+        .status.loading {
+
+            background:
+                rgba(30,58,138,.25);
+
+            border:
+                1px solid #1e3a8a;
+
+        }
+
+    </style>
+
+</head>
+
+
+<body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased selection:bg-red-500/30">
+
+
+    <!-- =====================================
+         BACKGROUND DEKORATIF
+    ====================================== -->
+
+    <div class="pointer-events-none fixed inset-0 z-0">
+
+        <div class="absolute -top-48 left-1/2 h-96 w-[36rem] -translate-x-1/2 rounded-full bg-red-600/10 blur-3xl"></div>
+
+        <div class="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl"></div>
+
+    </div>
+
+
+    <!-- =========================================
+         HEADER
+    ========================================== -->
+
+    <header class="sticky top-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-lg">
+
+        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+
+            <a
+                href="/"
+                class="flex items-center gap-2.5"
+            >
+
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-lg font-black text-white shadow-lg shadow-red-600/30">
+                    V
+                </span>
+
+                <span class="text-xl font-extrabold tracking-tight">
+                    Videy
+                </span>
+
+            </a>
+
+
+            <a
+                href="/"
+                class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-medium text-slate-200 transition hover:border-white/25 hover:bg-white/10"
+            >
+
+                ← Kembali ke Player
+
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <main class="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6">
+
+
+        <!-- =====================================
+             JUDUL HALAMAN
+        ====================================== -->
+
+        <div class="mb-8">
+
+            <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">
+
+                🎥 Rekaman Kamera
+
+            </h1>
+
+
+            <p class="mt-1 text-sm text-slate-400">
+
+                Semua rekaman tersimpan otomatis di server.
+
+            </p>
+
+        </div>
+
+
+        <!-- =====================================
+             PREVIEW TERBARU
+        ====================================== -->
+
+        <div
+            id="previewBox"
+            class="mb-8 rounded-2xl border border-white/10 bg-slate-900/60 p-4 shadow-2xl shadow-black/40 backdrop-blur sm:p-6"
+            style="display:none"
+        >
+
+            <h2 class="mb-4 text-lg font-bold tracking-tight">
+
+                Rekaman Terbaru
+
+            </h2>
+
+
+            <video
+                id="previewVideo"
+                controls
+                class="max-h-[500px] w-full rounded-xl bg-black ring-1 ring-white/10"
+            ></video>
+
+
+            <div
+                id="previewMeta"
+                class="mt-3 text-sm text-slate-400"
+            ></div>
+
+        </div>
+
+
+        <!-- =====================================
+             DAFTAR REKAMAN
+        ====================================== -->
+
+        <h2
+            id="listTitle"
+            class="mb-4 text-lg font-bold tracking-tight"
+            style="display:none"
+        >
+
+            Semua Rekaman
+
+        </h2>
+
+
+        <div
+            id="recordingList"
+            class="flex flex-col gap-3"
+        ></div>
+
+
+        <div
+            class="status"
+            id="status"
+        >
+
+            Memuat rekaman...
+
+        </div>
+
+    </main>
+
+
+    <script>
+
+
+// ============================================
+// ELEMENTS
+// ============================================
+
+const previewBox =
+    document.getElementById(
+        "previewBox"
+    );
+
+
+const previewVideo =
+    document.getElementById(
+        "previewVideo"
+    );
+
+
+const previewMeta =
+    document.getElementById(
+        "previewMeta"
+    );
+
+
+const listTitle =
+    document.getElementById(
+        "listTitle"
+    );
+
+
+const recordingList =
+    document.getElementById(
+        "recordingList"
+    );
+
+
+const status =
+    document.getElementById(
+        "status"
+    );
+
+
+// ============================================
+// FORMAT SIZE
+// ============================================
+
+function formatSize(bytes) {
+
+    if (
+        bytes >=
+        1024 * 1024
+    ) {
+
+        return (
+            (bytes / (1024 * 1024))
+                .toFixed(2) +
+            " MB"
+        );
+
+    }
+
+
+    if (
+        bytes >=
+        1024
+    ) {
+
+        return (
+            (bytes / 1024)
+                .toFixed(1) +
+            " KB"
+        );
+
+    }
+
+
+    return (
+        bytes +
+        " B"
+    );
+
+}
+
+
+// ============================================
+// FORMAT TANGGAL
+// ============================================
+
+function formatDate(isoString) {
+
+    const date =
+        new Date(
+            isoString
+        );
+
+
+    return date.toLocaleString(
+        "id-ID",
+        {
+
+            dateStyle:
+                "medium",
+
+            timeStyle:
+                "medium"
+
+        }
+    );
+
+}
+
+
+// ============================================
+// TAMPILKAN PREVIEW TERBARU
+// ============================================
+
+function showLatestRecording(
+    recordings
+) {
+
+    if (
+        recordings.length ===
+        0
+    ) {
+
+        return;
+
+    }
+
+
+    const latest =
+        recordings[0];
+
+
+    previewVideo.src =
+        latest.url;
+
+
+    previewMeta.textContent =
+        `${latest.filename} • ` +
+        `${formatSize(latest.size)} • ` +
+        formatDate(
+            latest.createdAt
+        );
+
+
+    previewBox.style.display =
+        "block";
+
+}
+
+
+// ============================================
+// TAMPILKAN DAFTAR REKAMAN
+// ============================================
+
+function showRecordingList(
+    recordings
+) {
+
+    recordingList.innerHTML =
+        "";
+
+
+    if (
+        recordings.length ===
+        0
+    ) {
+
+        status.style.display =
+            "block";
+
+
+        status.className =
+            "status";
+
+
+        status.textContent =
+            "Belum ada rekaman di server.";
+
+        return;
+
+    }
+
+
+    listTitle.style.display =
+        "block";
+
+
+    status.style.display =
+        "none";
+
+
+    recordings.forEach(
+        function (
+            recording,
+            index
+        ) {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "recording-item";
+
+
+            if (index === 0) {
+
+                item.classList.add(
+                    "active"
+                );
+
+            }
+
+
+            item.addEventListener(
+                "click",
+                function () {
+
+                    previewVideo.src =
+                        recording.url;
+
+
+                    previewMeta.textContent =
+                        `${recording.filename} • ` +
+                        `${formatSize(recording.size)} • ` +
+                        formatDate(
+                            recording.createdAt
+                        );
+
+
+                    previewBox.style.display =
+                        "block";
+
+
+                    previewVideo.play();
+
+
+                    document
+                        .querySelectorAll(
+                            ".recording-item"
+                        )
+                        .forEach(
+                            el =>
+                                el.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                    item.classList.add(
+                        "active"
+                    );
+
+                }
+            );
+
+
+            const name =
+                document.createElement(
+                    "span"
+                );
+
+
+            name.className =
+                "recording-name";
+
+
+            name.textContent =
+                recording.filename;
+
+
+            const info =
+                document.createElement(
+                    "span"
+                );
+
+
+            info.className =
+                "recording-info";
+
+
+            info.textContent =
+                formatSize(
+                    recording.size
+                );
+
+
+            const deleteButton =
+                document.createElement(
+                    "button"
+                );
+
+
+            deleteButton.className =
+                "delete-btn";
+
+
+            deleteButton.textContent =
+                "Hapus";
+
+
+            deleteButton.addEventListener(
+                "click",
+                function (event) {
+
+                    event.stopPropagation();
+
+                    deleteRecording(
+                        recording.filename
+                    );
+
+                }
+            );
+
+
+            item.appendChild(
+                name
+            );
+
+
+            item.appendChild(
+                info
+            );
+
+
+            item.appendChild(
+                deleteButton
+            );
+
+
+            recordingList.appendChild(
+                item
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================
+// HAPUS REKAMAN
+// ============================================
+
+async function deleteRecording(
+    filename
+) {
+
+    const confirmed =
+        confirm(
+            `Hapus rekaman ${filename}?`
+        );
+
+
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/recordings/${encodeURIComponent(filename)}`,
+                {
+                    method:
+                        "DELETE"
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.message ||
+                "Gagal menghapus rekaman."
+            );
+
+        }
+
+
+        loadRecordings();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        alert(
+            error.message ||
+            "Gagal menghapus rekaman."
+        );
+
+    }
+
+}
+
+
+// ============================================
+// LOAD REKAMAN DARI SERVER
+// ============================================
+
+async function loadRecordings() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/recordings"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.message ||
+                "Gagal memuat rekaman."
+            );
+
+        }
+
+
+        const recordings =
+            data.recordings;
+
+
+        showLatestRecording(
+            recordings
+        );
+
+
+        showRecordingList(
+            recordings
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        status.style.display =
+            "block";
+
+
+        status.className =
+            "status";
+
+
+        status.textContent =
+            "Gagal memuat rekaman dari server.";
+
+    }
+
+}
+
+
+loadRecordings();
+
+
+</script>
+
+</body>
+
+</html>
