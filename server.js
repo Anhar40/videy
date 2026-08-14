@@ -1299,53 +1299,23 @@ app.use(
 // ============================================
 // START SERVER
 // ============================================
-//
-// Di Vercel, app diekspor sebagai serverless
-// function (lihat api/index.js), jadi port
-// hanya dibuka saat dijalankan langsung.
 
-if (require.main === module) {
+app.listen(PORT, () => {
 
-    app.listen(
-        PORT,
-
-        function () {
-
-            console.log("");
-            console.log(
-                "======================================"
-            );
-
-            console.log(
-                " CAMERA VIDEO RECORDER"
-            );
-
-            console.log(
-                "======================================"
-            );
-
-            console.log(
-                `Server : http://localhost:${PORT}`
-            );
-
-            console.log(
-                `API    : http://localhost:${PORT}/api/status`
-            );
-
-            console.log(
-                `Upload : POST /api/recordings/upload`
-            );
-
-            console.log(
-                "======================================"
-            );
-
-            console.log("");
-
-        }
+    console.log("");
+    console.log("================================");
+    console.log(" VIDEO RECORDER BACKEND");
+    console.log("================================");
+    console.log(
+        `Server: http://localhost:${PORT}`
     );
+    console.log(
+        `Video : http://localhost:${PORT}/videos/video.mp4`
+    );
+    console.log(
+        `API   : http://localhost:${PORT}/api/status`
+    );
+    console.log("================================");
+    console.log("");
 
-}
-
-
-module.exports = app;
+});
