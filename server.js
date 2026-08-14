@@ -228,6 +228,200 @@ const upload =
 
 
 // ============================================
+// HELPER: LISTING DIREKTORI
+// ============================================
+//
+// Untuk diagnosa di Vercel.
+
+function listDir(
+    dir,
+    depth
+) {
+
+    const output = {};
+
+    try {
+
+        for (
+            const entry
+            of fs.readdirSync(
+                dir,
+                {
+                    withFileTypes: true
+                }
+            )
+        ) {
+
+            if (
+                entry.name
+                    .startsWith(".")
+            ) {
+
+                continue;
+
+            }
+
+
+            const fullPath =
+                path.join(
+                    dir,
+                    entry.name
+                );
+
+
+            if (
+                entry.isDirectory() &&
+                depth > 0
+            ) {
+
+                output[entry.name + "/"] =
+                    listDir(
+                        fullPath,
+                        depth - 1
+                    );
+
+            }
+
+            else if (
+                entry.isFile()
+            ) {
+
+                output[entry.name] =
+                    fs.statSync(
+                        fullPath
+                    ).size;
+
+            }
+
+        }
+
+    }
+
+    catch (error) {
+
+        return (
+            "ERROR: " +
+            error.message
+        );
+
+    }
+
+
+    return output;
+
+}
+
+
+// ============================================
+// HELPER: DIAGNOSA
+// ============================================
+
+function getDiagnostics() {
+
+    const files = [
+
+        "index.html",
+
+        "preview.html",
+
+        "videos.json"
+
+    ];
+
+
+    const dirs = [
+
+        ["__dirname", __dirname],
+
+        [
+            "__dirname/..",
+            path.resolve(
+                __dirname,
+                ".."
+            )
+        ],
+
+        [
+            "process.cwd()",
+            process.cwd()
+        ],
+
+        [
+            "cwd/..",
+            path.resolve(
+                process.cwd(),
+                ".."
+            )
+        ]
+
+    ];
+
+
+    return {
+
+        isVercel,
+
+        nodeVersion:
+            process.version,
+
+        __dirname,
+
+        cwd:
+            process.cwd(),
+
+        locations:
+            dirs.map(
+                function ([
+                    label,
+                    dir
+                ]) {
+
+                    return {
+
+                        label,
+
+                        dir,
+
+                        files:
+                            files.map(
+                                function (
+                                    file
+                                ) {
+
+                                    return {
+
+                                        file,
+
+                                        exists:
+                                            fs.existsSync(
+                                                path.join(
+                                                    dir,
+                                                    file
+                                                )
+                                            )
+
+                                    };
+
+                                }
+                            ),
+
+                        list:
+                            listDir(
+                                dir,
+                                2
+                            )
+
+                    };
+
+                }
+            )
+
+    };
+
+}
+
+
+// ============================================
 // HELPER: CARI FILE FRONTEND
 // ============================================
 //
@@ -303,14 +497,54 @@ app.get(
                 indexPath
             );
 
+
         }
+
+
+        console.error(
+            "index.html tidak ditemukan. Diagnosa:",
+            JSON.stringify(
+                getDiagnostics(),
+                null,
+                2
+            )
+        );
 
 
         res
             .status(200)
+            .type("text")
             .send(
-                "Videy - server berjalan."
+                "Videy - server berjalan.\n" +
+                "index.html TIDAK ditemukan di function.\n\n" +
+                JSON.stringify(
+                    getDiagnostics(),
+                    null,
+                    2
+                )
             );
+
+    }
+);
+
+
+// ============================================
+// DIAGNOSE
+// ============================================
+//
+// Endpoint bantu melihat lokasi file di sandbox
+// Vercel: /api/diagnose
+
+app.get(
+    "/api/diagnose",
+    function (
+        req,
+        res
+    ) {
+
+        res.json(
+            getDiagnostics()
+        );
 
     }
 );
