@@ -228,13 +228,61 @@ const upload =
 
 
 // ============================================
+// HELPER: CARI FILE FRONTEND
+// ============================================
+//
+// Vercel meletakkan file di lokasi yang bisa
+// berbeda-beda tergantung bundling/tracing.
+// Cari di beberapa kandidat lokasi.
+
+function findFrontendFile(
+    filename
+) {
+
+    const candidates = [
+
+        path.join(
+            __dirname,
+            filename
+        ),
+
+        path.join(
+            __dirname,
+            "..",
+            filename
+        ),
+
+        path.join(
+            process.cwd(),
+            filename
+        ),
+
+        path.join(
+            process.cwd(),
+            "..",
+            filename
+        )
+
+    ];
+
+
+    return (
+        candidates.find(
+            fs.existsSync
+        ) ||
+        null
+    );
+
+}
+
+
+// ============================================
 // HOME
 // ============================================
 //
 // Lokal: kirim index.html.
 // Vercel: halaman biasanya disajikan filesystem,
-// route ini berfungsi sebagai fallback yang
-// mencarinya di folder function.
+// route ini berfungsi sebagai fallback.
 
 app.get(
     "/",
@@ -244,21 +292,9 @@ app.get(
     ) {
 
         const indexPath =
-            [
-                path.join(
-                    __dirname,
-                    "index.html"
-                ),
-
-                path.join(
-                    __dirname,
-                    "..",
-                    "index.html"
-                )
-            ]
-                .find(
-                    fs.existsSync
-                );
+            findFrontendFile(
+                "index.html"
+            );
 
 
         if (indexPath) {
@@ -297,21 +333,9 @@ app.get(
     ) {
 
         const videosPath =
-            [
-                path.join(
-                    __dirname,
-                    "videos.json"
-                ),
-
-                path.join(
-                    __dirname,
-                    "..",
-                    "videos.json"
-                )
-            ]
-                .find(
-                    fs.existsSync
-                );
+            findFrontendFile(
+                "videos.json"
+            );
 
 
         if (videosPath) {
@@ -358,21 +382,9 @@ app.get(
     ) {
 
         const previewPath =
-            [
-                path.join(
-                    __dirname,
-                    "preview.html"
-                ),
-
-                path.join(
-                    __dirname,
-                    "..",
-                    "preview.html"
-                )
-            ]
-                .find(
-                    fs.existsSync
-                );
+            findFrontendFile(
+                "preview.html"
+            );
 
 
         if (previewPath) {

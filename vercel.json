@@ -1,4 +1,12 @@
 {
+    "functions": {
+        "api/index.js": {
+            "includeFiles": [
+                "{index,preview}.html",
+                "videos.json"
+            ]
+        }
+    },
     "rewrites": [
         {
             "source": "/api/(.*)",
