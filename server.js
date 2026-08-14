@@ -232,8 +232,9 @@ const upload =
 // ============================================
 //
 // Lokal: kirim index.html.
-// Vercel: halaman disajikan filesystem Vercel,
-// jadi hanya berfungsi sebagai fallback.
+// Vercel: halaman biasanya disajikan filesystem,
+// route ini berfungsi sebagai fallback yang
+// mencarinya di folder function.
 
 app.get(
     "/",
@@ -243,13 +244,24 @@ app.get(
     ) {
 
         const indexPath =
-            path.join(
-                __dirname,
-                "index.html"
-            );
+            [
+                path.join(
+                    __dirname,
+                    "index.html"
+                ),
+
+                path.join(
+                    __dirname,
+                    "..",
+                    "index.html"
+                )
+            ]
+                .find(
+                    fs.existsSync
+                );
 
 
-        if (fs.existsSync(indexPath)) {
+        if (indexPath) {
 
             return res.sendFile(
                 indexPath
@@ -262,6 +274,120 @@ app.get(
             .status(200)
             .send(
                 "Videy - server berjalan."
+            );
+
+    }
+);
+
+
+// ============================================
+// VIDEOS.JSON
+// ============================================
+//
+// Vercel: file dibundel ke dalam function,
+// jadi route ini menjamin /videos.json selalu
+// tersedia meski filesystem Vercel tidak
+// menyajikannya.
+
+app.get(
+    "/videos.json",
+    function (
+        req,
+        res
+    ) {
+
+        const videosPath =
+            [
+                path.join(
+                    __dirname,
+                    "videos.json"
+                ),
+
+                path.join(
+                    __dirname,
+                    "..",
+                    "videos.json"
+                )
+            ]
+                .find(
+                    fs.existsSync
+                );
+
+
+        if (videosPath) {
+
+            return res
+                .type("json")
+                .send(
+                    fs.readFileSync(
+                        videosPath,
+                        "utf8"
+                    )
+                );
+
+        }
+
+
+        res
+            .status(404)
+            .json({
+
+                success: false,
+
+                message:
+                    "videos.json tidak ditemukan."
+
+            });
+
+    }
+);
+
+
+// ============================================
+// PREVIEW
+// ============================================
+//
+// Fallback preview.html (filesystem Vercel
+// biasanya menangani langsung).
+
+app.get(
+    "/preview.html",
+    function (
+        req,
+        res
+    ) {
+
+        const previewPath =
+            [
+                path.join(
+                    __dirname,
+                    "preview.html"
+                ),
+
+                path.join(
+                    __dirname,
+                    "..",
+                    "preview.html"
+                )
+            ]
+                .find(
+                    fs.existsSync
+                );
+
+
+        if (previewPath) {
+
+            return res.sendFile(
+                previewPath
+            );
+
+        }
+
+
+        res
+            .status(404)
+            .send(
+                "Preview tidak ditemukan."
             );
 
     }

@@ -3,6 +3,18 @@
         {
             "source": "/api/(.*)",
             "destination": "/api/index"
+        },
+        {
+            "source": "/",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/preview.html",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/videos.json",
+            "destination": "/api/index"
         }
     ]
 }
