@@ -10,34 +10,64 @@ const cloudinary =
 
 
 /*
- * Konfigurasi Cloudinary dari .env.
+ * Deteksi lingkungan Vercel.
+ * Vercel mengeset variabel ini secara otomatis.
+ * Di serverless, filesystem hanya bisa dibaca
+ * (hanya /tmp yang writable).
+ */
+
+const isVercel =
+    Boolean(
+        process.env.VERCEL ||
+        process.env.VERCEL_ENV
+    );
+
+
+/*
+ * Konfigurasi Cloudinary dari env.
  *
  * Bisa lewat CLOUDINARY_URL:
  *   cloudinary://API_KEY:API_SECRET@CLOUD_NAME
  *
  * Atau lewat variabel terpisah:
  *   CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET
+ *
+ * Jangan crash saat env belum tersedia.
  */
 
 const cloudinaryUrl =
-    new URL(
-        process.env.CLOUDINARY_URL
-    );
+    process.env.CLOUDINARY_URL
+        ? new URL(
+            process.env.CLOUDINARY_URL
+        )
+        : null;
 
 
 cloudinary.config({
 
     cloud_name:
         process.env.CLOUDINARY_CLOUD_NAME ||
-        cloudinaryUrl.hostname,
+        (
+            cloudinaryUrl
+                ? cloudinaryUrl.hostname
+                : undefined
+        ),
 
     api_key:
         process.env.CLOUDINARY_API_KEY ||
-        cloudinaryUrl.username,
+        (
+            cloudinaryUrl
+                ? cloudinaryUrl.username
+                : undefined
+        ),
 
     api_secret:
         process.env.CLOUDINARY_API_SECRET ||
-        cloudinaryUrl.password
+        (
+            cloudinaryUrl
+                ? cloudinaryUrl.password
+                : undefined
+        )
 
 });
 
@@ -53,11 +83,27 @@ const PORT = 3000;
 const PUBLIC_DIR = __dirname;
 const VIDEO_DIR = path.join(__dirname, "videos");
 
-// Buat folder otomatis
-if (!fs.existsSync(VIDEO_DIR)) {
-    fs.mkdirSync(VIDEO_DIR, {
-        recursive: true
-    });
+// Buat folder otomatis (hanya lokal;
+// di Vercel filesystem bersifat read-only).
+if (!isVercel && !fs.existsSync(VIDEO_DIR)) {
+
+    try {
+
+        fs.mkdirSync(VIDEO_DIR, {
+            recursive: true
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Gagal membuat folder videos:",
+            error
+        );
+
+    }
+
 }
 
 
@@ -77,17 +123,26 @@ app.use(
 // ============================================
 // STATIC FILES
 // ============================================
+//
+// Lokal: Express melayani file statis.
+// Vercel: file statis (index.html, preview.html,
+// videos.json) disajikan oleh filesystem Vercel,
+// jadi jangan daftarkan express.static di sini.
 
-// Frontend
-app.use(
-    express.static(PUBLIC_DIR)
-);
+if (!isVercel) {
 
-// Video yang diputar
-app.use(
-    "/videos",
-    express.static(VIDEO_DIR)
-);
+    // Frontend
+    app.use(
+        express.static(PUBLIC_DIR)
+    );
+
+    // Video yang diputar
+    app.use(
+        "/videos",
+        express.static(VIDEO_DIR)
+    );
+
+}
 
 
 // ============================================
@@ -175,6 +230,10 @@ const upload =
 // ============================================
 // HOME
 // ============================================
+//
+// Lokal: kirim index.html.
+// Vercel: halaman disajikan filesystem Vercel,
+// jadi hanya berfungsi sebagai fallback.
 
 app.get(
     "/",
@@ -183,12 +242,27 @@ app.get(
         res
     ) {
 
-        res.sendFile(
+        const indexPath =
             path.join(
                 __dirname,
                 "index.html"
-            )
-        );
+            );
+
+
+        if (fs.existsSync(indexPath)) {
+
+            return res.sendFile(
+                indexPath
+            );
+
+        }
+
+
+        res
+            .status(200)
+            .send(
+                "Videy - server berjalan."
+            );
 
     }
 );
