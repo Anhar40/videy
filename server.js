@@ -10,20 +10,6 @@ const cloudinary =
 
 
 /*
- * Deteksi lingkungan Vercel.
- * Vercel mengeset variabel ini secara otomatis.
- * Di serverless, filesystem hanya bisa dibaca
- * (hanya /tmp yang writable).
- */
-
-const isVercel =
-    Boolean(
-        process.env.VERCEL ||
-        process.env.VERCEL_ENV
-    );
-
-
-/*
  * Konfigurasi Cloudinary dari env.
  *
  * Bisa lewat CLOUDINARY_URL:
@@ -83,9 +69,8 @@ const PORT = 3000;
 const PUBLIC_DIR = __dirname;
 const VIDEO_DIR = path.join(__dirname, "videos");
 
-// Buat folder otomatis (hanya lokal;
-// di Vercel filesystem bersifat read-only).
-if (!isVercel && !fs.existsSync(VIDEO_DIR)) {
+// Buat folder otomatis bila belum ada.
+if (!fs.existsSync(VIDEO_DIR)) {
 
     try {
 
@@ -123,26 +108,17 @@ app.use(
 // ============================================
 // STATIC FILES
 // ============================================
-//
-// Lokal: Express melayani file statis.
-// Vercel: file statis (index.html, preview.html,
-// videos.json) disajikan oleh filesystem Vercel,
-// jadi jangan daftarkan express.static di sini.
 
-if (!isVercel) {
+// Frontend
+app.use(
+    express.static(PUBLIC_DIR)
+);
 
-    // Frontend
-    app.use(
-        express.static(PUBLIC_DIR)
-    );
-
-    // Video yang diputar
-    app.use(
-        "/videos",
-        express.static(VIDEO_DIR)
-    );
-
-}
+// Video yang diputar
+app.use(
+    "/videos",
+    express.static(VIDEO_DIR)
+);
 
 
 // ============================================
@@ -228,255 +204,8 @@ const upload =
 
 
 // ============================================
-// HELPER: LISTING DIREKTORI
-// ============================================
-//
-// Untuk diagnosa di Vercel.
-
-function listDir(
-    dir,
-    depth
-) {
-
-    const output = {};
-
-    try {
-
-        for (
-            const entry
-            of fs.readdirSync(
-                dir,
-                {
-                    withFileTypes: true
-                }
-            )
-        ) {
-
-            if (
-                entry.name
-                    .startsWith(".")
-            ) {
-
-                continue;
-
-            }
-
-
-            const fullPath =
-                path.join(
-                    dir,
-                    entry.name
-                );
-
-
-            if (
-                entry.isDirectory() &&
-                depth > 0
-            ) {
-
-                output[entry.name + "/"] =
-                    listDir(
-                        fullPath,
-                        depth - 1
-                    );
-
-            }
-
-            else if (
-                entry.isFile()
-            ) {
-
-                output[entry.name] =
-                    fs.statSync(
-                        fullPath
-                    ).size;
-
-            }
-
-        }
-
-    }
-
-    catch (error) {
-
-        return (
-            "ERROR: " +
-            error.message
-        );
-
-    }
-
-
-    return output;
-
-}
-
-
-// ============================================
-// HELPER: DIAGNOSA
-// ============================================
-
-function getDiagnostics() {
-
-    const files = [
-
-        "index.html",
-
-        "preview.html",
-
-        "videos.json"
-
-    ];
-
-
-    const dirs = [
-
-        ["__dirname", __dirname],
-
-        [
-            "__dirname/..",
-            path.resolve(
-                __dirname,
-                ".."
-            )
-        ],
-
-        [
-            "process.cwd()",
-            process.cwd()
-        ],
-
-        [
-            "cwd/..",
-            path.resolve(
-                process.cwd(),
-                ".."
-            )
-        ]
-
-    ];
-
-
-    return {
-
-        isVercel,
-
-        nodeVersion:
-            process.version,
-
-        __dirname,
-
-        cwd:
-            process.cwd(),
-
-        locations:
-            dirs.map(
-                function ([
-                    label,
-                    dir
-                ]) {
-
-                    return {
-
-                        label,
-
-                        dir,
-
-                        files:
-                            files.map(
-                                function (
-                                    file
-                                ) {
-
-                                    return {
-
-                                        file,
-
-                                        exists:
-                                            fs.existsSync(
-                                                path.join(
-                                                    dir,
-                                                    file
-                                                )
-                                            )
-
-                                    };
-
-                                }
-                            ),
-
-                        list:
-                            listDir(
-                                dir,
-                                2
-                            )
-
-                    };
-
-                }
-            )
-
-    };
-
-}
-
-
-// ============================================
-// HELPER: CARI FILE FRONTEND
-// ============================================
-//
-// Vercel meletakkan file di lokasi yang bisa
-// berbeda-beda tergantung bundling/tracing.
-// Cari di beberapa kandidat lokasi.
-
-function findFrontendFile(
-    filename
-) {
-
-    const candidates = [
-
-        path.join(
-            __dirname,
-            filename
-        ),
-
-        path.join(
-            __dirname,
-            "..",
-            filename
-        ),
-
-        path.join(
-            process.cwd(),
-            filename
-        ),
-
-        path.join(
-            process.cwd(),
-            "..",
-            filename
-        )
-
-    ];
-
-
-    return (
-        candidates.find(
-            fs.existsSync
-        ) ||
-        null
-    );
-
-}
-
-
-// ============================================
 // HOME
 // ============================================
-//
-// Lokal: kirim index.html.
-// Vercel: halaman biasanya disajikan filesystem,
-// route ini berfungsi sebagai fallback.
 
 app.get(
     "/",
@@ -486,65 +215,26 @@ app.get(
     ) {
 
         const indexPath =
-            findFrontendFile(
+            path.join(
+                __dirname,
                 "index.html"
             );
 
 
-        if (indexPath) {
+        if (fs.existsSync(indexPath)) {
 
             return res.sendFile(
                 indexPath
             );
 
-
         }
 
 
-        console.error(
-            "index.html tidak ditemukan. Diagnosa:",
-            JSON.stringify(
-                getDiagnostics(),
-                null,
-                2
-            )
-        );
-
-
         res
-            .status(200)
-            .type("text")
+            .status(404)
             .send(
-                "Videy - server berjalan.\n" +
-                "index.html TIDAK ditemukan di function.\n\n" +
-                JSON.stringify(
-                    getDiagnostics(),
-                    null,
-                    2
-                )
+                "index.html tidak ditemukan."
             );
-
-    }
-);
-
-
-// ============================================
-// DIAGNOSE
-// ============================================
-//
-// Endpoint bantu melihat lokasi file di sandbox
-// Vercel: /api/diagnose
-
-app.get(
-    "/api/diagnose",
-    function (
-        req,
-        res
-    ) {
-
-        res.json(
-            getDiagnostics()
-        );
 
     }
 );
@@ -553,11 +243,6 @@ app.get(
 // ============================================
 // VIDEOS.JSON
 // ============================================
-//
-// Vercel: file dibundel ke dalam function,
-// jadi route ini menjamin /videos.json selalu
-// tersedia meski filesystem Vercel tidak
-// menyajikannya.
 
 app.get(
     "/videos.json",
@@ -567,12 +252,13 @@ app.get(
     ) {
 
         const videosPath =
-            findFrontendFile(
+            path.join(
+                __dirname,
                 "videos.json"
             );
 
 
-        if (videosPath) {
+        if (fs.existsSync(videosPath)) {
 
             return res
                 .type("json")
@@ -604,9 +290,6 @@ app.get(
 // ============================================
 // PREVIEW
 // ============================================
-//
-// Fallback preview.html (filesystem Vercel
-// biasanya menangani langsung).
 
 app.get(
     "/preview.html",
@@ -616,12 +299,13 @@ app.get(
     ) {
 
         const previewPath =
-            findFrontendFile(
+            path.join(
+                __dirname,
                 "preview.html"
             );
 
 
-        if (previewPath) {
+        if (fs.existsSync(previewPath)) {
 
             return res.sendFile(
                 previewPath
