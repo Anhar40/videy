@@ -1,0 +1,16 @@
+{
+  "name": "video-recorder",
+  "version": "1.0.0",
+  "description": "Video player and recording backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cloudinary": "^2.10.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "multer": "^2.0.2"
+  }
+}
